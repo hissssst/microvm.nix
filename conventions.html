@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Declaring MicroVMs - microvm.nix</title>
+        <title>Conventions - microvm.nix</title>
 
 
         <!-- Custom HTML head -->
@@ -179,48 +179,49 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h1 id="declaring-nixos-microvms"><a class="header" href="#declaring-nixos-microvms">Declaring NixOS MicroVMs</a></h1>
-<p><img src="demo.gif" alt="Demo" /></p>
-<p>microvm.nix creates virtual machine disk images and runner script
-packages for the entries of the <code>nixosConfigurations</code> section of a
-<code>flake.nix</code> file.</p>
-<h2 id="the-microvm-module"><a class="header" href="#the-microvm-module">The <code>microvm</code> module</a></h2>
-<p>To add MicroVM functionality, a NixOS system configuration is
-augmented by importing this flake's <code>nixosModule.microvm</code>:</p>
-<pre><code class="language-nix"># Example flake.nix
-{
-  inputs.nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
-  inputs.microvm.url = "github:microvm-nix/microvm.nix";
-  inputs.microvm.inputs.nixpkgs.follows = "nixpkgs";
-
-  outputs = { self, nixpkgs, microvm }: {
-    # Example nixosConfigurations entry
-    nixosConfigurations.my-microvm = nixpkgs.lib.nixosSystem {
-      system = "x86_64-linux";
-      modules = [
-        # Include the microvm module
-        microvm.nixosModules.microvm
-        # Add more modules here
-        {
-          networking.hostName = "my-microvm";
-          microvm.hypervisor = "cloud-hypervisor";
-        }
-      ];
-    };
-  };
-}
-</code></pre>
-<p>To get you started quickly, a Flake template is included. Run <code>nix flake init -t github:microvm-nix/microvm.nix</code> in a new project directory.</p>
+                        <h1 id="conventions-between-microvm-packages-and-the-host"><a class="header" href="#conventions-between-microvm-packages-and-the-host">Conventions between MicroVM packages and the host</a></h1>
+<p>This section describes the interface that is used to run MicroVM
+packages with the flake's <code>host</code> module. While the <strong>microvm.nix</strong>
+flake was designed for single-server usage, you can build different
+MicroVM deployments using the information on this page.</p>
+<div class="table-wrapper"><table><thead><tr><th><code>nixosModule.microvm</code> option</th><th>MicroVM package file</th><th><code>nixosModules.host</code> systemd service</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>microvm.hypervisor</code></td><td><code>bin/microvm-run</code></td><td><code>microvm@.service</code></td><td>Start script for the main MicroVM process</td></tr>
+<tr><td><code>microvm.hypervisor</code></td><td><code>bin/microvm-shutdown</code></td><td><code>microvm@.service</code></td><td>Script for graceful shutdown of the MicroVM (i.e. triggering the power button)</td></tr>
+<tr><td><code>microvm.interfaces.*.id</code></td><td><code>share/microvm/tap-interfaces</code></td><td><code>microvm-tap-interfaces@.service</code></td><td>Names of the tap network interfaces to setup for the proper user</td></tr>
+<tr><td><code>microvm.devices.*.path</code></td><td><code>share/microvm/pci-devices</code></td><td><code>microvm-pci-devices@.service</code></td><td>PCI devices that must be bound to the <strong>vfio-pci</strong> driver on the host</td></tr>
+<tr><td><code>microvm.shares.*.source</code></td><td><code>share/microvm/virtiofs/${tag}/source</code></td><td><code>microvm-virtiofsd@.service</code></td><td>Source directory of a <strong>virtiofs</strong> instance by tag</td></tr>
+<tr><td><code>microvm.shares.*.socket</code></td><td><code>share/microvm/virtiofs/${tag}/socket</code></td><td><code>microvm-virtiofsd@.service</code></td><td><strong>virtiofsd</strong> socket path by tag</td></tr>
+<tr><td><code>microvm.systemSymlink</code></td><td><code>share/microvm/system</code></td><td></td><td><code>config.system.build.toplevel</code> symlink, used for comparing versions when running <code>microvm -l</code></td></tr>
+</tbody></table>
+</div>
+<h2 id="generating-custom-operating-system-hypervisor-packages"><a class="header" href="#generating-custom-operating-system-hypervisor-packages">Generating custom operating system hypervisor packages</a></h2>
+<p>Because a microvm.nix runner package completely defines how to run the
+Hypervisor, it is possible to define independent packages that
+virtualize other operating systems than NixOS.</p>
+<ul>
+<li>
+<p>Your NixOS configurations should export their runner package as
+<code>config.microvm.declaredRunner</code> so that it can be picked up either
+as <a href="declarative.html">declarative MicroVMs</a> or by <a href="microvm-command.html">the microvm
+command</a>.</p>
+</li>
+<li>
+<p>The runner package must have a file layout as described in the table
+above.</p>
+</li>
+</ul>
+<p><a href="https://github.com/microvm-nix/microvm-solo5-spt">microvm-solo5-spt</a> is an
+example of a Flake that can run on a microvm.nix host.</p>
 
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
-                            <a rel="prev" href="intro.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                            <a rel="prev" href="ssh-deploy.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                                 <i class="fa fa-angle-left"></i>
                             </a>
 
-                            <a rel="next prefetch" href="options.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next prefetch" href="faq.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <i class="fa fa-angle-right"></i>
                             </a>
 
@@ -230,11 +231,11 @@ augmented by importing this flake's <code>nixosModule.microvm</code>:</p>
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
-                    <a rel="prev" href="intro.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                    <a rel="prev" href="ssh-deploy.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                         <i class="fa fa-angle-left"></i>
                     </a>
 
-                    <a rel="next prefetch" href="options.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a rel="next prefetch" href="faq.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <i class="fa fa-angle-right"></i>
                     </a>
             </nav>

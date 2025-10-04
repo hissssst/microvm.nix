@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Declaring MicroVMs - microvm.nix</title>
+        <title>Host options reference ⚙️ - microvm.nix</title>
 
 
         <!-- Custom HTML head -->
@@ -179,48 +179,173 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h1 id="declaring-nixos-microvms"><a class="header" href="#declaring-nixos-microvms">Declaring NixOS MicroVMs</a></h1>
-<p><img src="demo.gif" alt="Demo" /></p>
-<p>microvm.nix creates virtual machine disk images and runner script
-packages for the entries of the <code>nixosConfigurations</code> section of a
-<code>flake.nix</code> file.</p>
-<h2 id="the-microvm-module"><a class="header" href="#the-microvm-module">The <code>microvm</code> module</a></h2>
-<p>To add MicroVM functionality, a NixOS system configuration is
-augmented by importing this flake's <code>nixosModule.microvm</code>:</p>
-<pre><code class="language-nix"># Example flake.nix
-{
-  inputs.nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
-  inputs.microvm.url = "github:microvm-nix/microvm.nix";
-  inputs.microvm.inputs.nixpkgs.follows = "nixpkgs";
-
-  outputs = { self, nixpkgs, microvm }: {
-    # Example nixosConfigurations entry
-    nixosConfigurations.my-microvm = nixpkgs.lib.nixosSystem {
-      system = "x86_64-linux";
-      modules = [
-        # Include the microvm module
-        microvm.nixosModules.microvm
-        # Add more modules here
-        {
-          networking.hostName = "my-microvm";
-          microvm.hypervisor = "cloud-hypervisor";
-        }
-      ];
-    };
-  };
-}
-</code></pre>
-<p>To get you started quickly, a Flake template is included. Run <code>nix flake init -t github:microvm-nix/microvm.nix</code> in a new project directory.</p>
+                        <h2 id="microvmautostart"><a class="header" href="#microvmautostart">microvm.autostart</a></h2>
+<p>MicroVMs to start by default.</p>
+<p>This includes declarative <code>config.microvm.vms</code> as well as MicroVMs that are managed through the <code>microvm</code> command.</p>
+<p><em>Type:</em>
+list of string</p>
+<p><em>Default:</em>
+<code>[ ]</code></p>
+<p><em>Declared by:</em></p>
+<ul>
+<li><a href="https://github.com/microvm-nix/microvm.nix/tree/main/nixos-modules/host/options.nix">microvm.nix/nixos-modules/host/options.nix</a></li>
+</ul>
+<h2 id="microvmhostenable"><a class="header" href="#microvmhostenable">microvm.host.enable</a></h2>
+<p>Whether to enable the microvm.nix host module.</p>
+<p><em>Type:</em>
+boolean</p>
+<p><em>Default:</em>
+<code>true</code></p>
+<p><em>Declared by:</em></p>
+<ul>
+<li><a href="https://github.com/microvm-nix/microvm.nix/tree/main/nixos-modules/host/options.nix">microvm.nix/nixos-modules/host/options.nix</a></li>
+</ul>
+<h2 id="microvmhoststartuptimeout"><a class="header" href="#microvmhoststartuptimeout">microvm.host.startupTimeout</a></h2>
+<p>Start up timeout for the VMs in seconds</p>
+<p><em>Type:</em>
+positive integer, meaning &gt;0</p>
+<p><em>Default:</em>
+<code>150</code></p>
+<p><em>Declared by:</em></p>
+<ul>
+<li><a href="https://github.com/microvm-nix/microvm.nix/tree/main/nixos-modules/host/options.nix">microvm.nix/nixos-modules/host/options.nix</a></li>
+</ul>
+<h2 id="microvmhostusenotifysockets"><a class="header" href="#microvmhostusenotifysockets">microvm.host.useNotifySockets</a></h2>
+<p>Enable if all your MicroVMs run with a Hypervisor that sends
+readiness notification over a VSOCK.</p>
+<p><strong>Danger!</strong> If one of your MicroVMs doesn’t do this, its
+systemd service will not start up successfully!</p>
+<p><em>Type:</em>
+boolean</p>
+<p><em>Default:</em>
+<code>false</code></p>
+<p><em>Declared by:</em></p>
+<ul>
+<li><a href="https://github.com/microvm-nix/microvm.nix/tree/main/nixos-modules/host/options.nix">microvm.nix/nixos-modules/host/options.nix</a></li>
+</ul>
+<h2 id="microvmstatedir"><a class="header" href="#microvmstatedir">microvm.stateDir</a></h2>
+<p>Directory that contains the MicroVMs</p>
+<p><em>Type:</em>
+absolute path</p>
+<p><em>Default:</em>
+<code>"/var/lib/microvms"</code></p>
+<p><em>Declared by:</em></p>
+<ul>
+<li><a href="https://github.com/microvm-nix/microvm.nix/tree/main/nixos-modules/host/options.nix">microvm.nix/nixos-modules/host/options.nix</a></li>
+</ul>
+<h2 id="microvmvms"><a class="header" href="#microvmvms">microvm.vms</a></h2>
+<p>The MicroVMs that shall be built declaratively with the host NixOS.</p>
+<p><em>Type:</em>
+attribute set of (submodule)</p>
+<p><em>Default:</em>
+<code>{ }</code></p>
+<p><em>Declared by:</em></p>
+<ul>
+<li><a href="https://github.com/microvm-nix/microvm.nix/tree/main/nixos-modules/host/options.nix">microvm.nix/nixos-modules/host/options.nix</a></li>
+</ul>
+<h2 id="microvmvmsnameautostart"><a class="header" href="#microvmvmsnameautostart">microvm.vms.&lt;name&gt;.autostart</a></h2>
+<p>Add this MicroVM to config.microvm.autostart?</p>
+<p><em>Type:</em>
+boolean</p>
+<p><em>Default:</em>
+<code>true</code></p>
+<p><em>Declared by:</em></p>
+<ul>
+<li><a href="https://github.com/microvm-nix/microvm.nix/tree/main/nixos-modules/host/options.nix">microvm.nix/nixos-modules/host/options.nix</a></li>
+</ul>
+<h2 id="microvmvmsnameconfig"><a class="header" href="#microvmvmsnameconfig">microvm.vms.&lt;name&gt;.config</a></h2>
+<p>A specification of the desired configuration of this MicroVM,
+as a NixOS module, for building <strong>without</strong> a flake.</p>
+<p><em>Type:</em>
+null or (Toplevel NixOS config)</p>
+<p><em>Default:</em>
+<code>null</code></p>
+<p><em>Declared by:</em></p>
+<ul>
+<li><a href="https://github.com/microvm-nix/microvm.nix/tree/main/nixos-modules/host/options.nix">microvm.nix/nixos-modules/host/options.nix</a></li>
+</ul>
+<h2 id="microvmvmsnameflake"><a class="header" href="#microvmvmsnameflake">microvm.vms.&lt;name&gt;.flake</a></h2>
+<p>Source flake for declarative build</p>
+<p><em>Type:</em>
+null or absolute path</p>
+<p><em>Default:</em>
+<code>flakeInputs.my-infra</code></p>
+<p><em>Declared by:</em></p>
+<ul>
+<li><a href="https://github.com/microvm-nix/microvm.nix/tree/main/nixos-modules/host/options.nix">microvm.nix/nixos-modules/host/options.nix</a></li>
+</ul>
+<h2 id="microvmvmsnamenixpkgs"><a class="header" href="#microvmvmsnamenixpkgs">microvm.vms.&lt;name&gt;.nixpkgs</a></h2>
+<p>This option is only respected when <code>config</code> is
+specified.</p>
+<p>The nixpkgs path to use for the MicroVM. Defaults to the
+host’s nixpkgs.</p>
+<p><em>Type:</em>
+absolute path</p>
+<p><em>Default:</em>
+<code>pkgs.path</code></p>
+<p><em>Declared by:</em></p>
+<ul>
+<li><a href="https://github.com/microvm-nix/microvm.nix/tree/main/nixos-modules/host/options.nix">microvm.nix/nixos-modules/host/options.nix</a></li>
+</ul>
+<h2 id="microvmvmsnamepkgs"><a class="header" href="#microvmvmsnamepkgs">microvm.vms.&lt;name&gt;.pkgs</a></h2>
+<p>This option is only respected when <code>config</code> is specified.</p>
+<p>The package set to use for the MicroVM. Must be a
+nixpkgs package set with the microvm overlay. Determines
+the system of the MicroVM.</p>
+<p>If set to null, a new package set will be instantiated.</p>
+<p><em>Type:</em>
+null or unspecified value</p>
+<p><em>Default:</em>
+<code>pkgs</code></p>
+<p><em>Declared by:</em></p>
+<ul>
+<li><a href="https://github.com/microvm-nix/microvm.nix/tree/main/nixos-modules/host/options.nix">microvm.nix/nixos-modules/host/options.nix</a></li>
+</ul>
+<h2 id="microvmvmsnamerestartifchanged"><a class="header" href="#microvmvmsnamerestartifchanged">microvm.vms.&lt;name&gt;.restartIfChanged</a></h2>
+<p>Restart this MicroVM’s services if the systemd units are changed,
+i.e. if it has been updated by rebuilding the host.</p>
+<p>Defaults to true for fully-declarative MicroVMs.</p>
+<p><em>Type:</em>
+boolean</p>
+<p><em>Default:</em>
+<code>false</code></p>
+<p><em>Declared by:</em></p>
+<ul>
+<li><a href="https://github.com/microvm-nix/microvm.nix/tree/main/nixos-modules/host/options.nix">microvm.nix/nixos-modules/host/options.nix</a></li>
+</ul>
+<h2 id="microvmvmsnamespecialargs"><a class="header" href="#microvmvmsnamespecialargs">microvm.vms.&lt;name&gt;.specialArgs</a></h2>
+<p>This option is only respected when <code>config</code> is specified.</p>
+<p>A set of special arguments to be passed to NixOS modules.
+This will be merged into the <code>specialArgs</code> used to evaluate
+the NixOS configurations.</p>
+<p><em>Type:</em>
+attribute set of unspecified value</p>
+<p><em>Default:</em>
+<code>{ }</code></p>
+<p><em>Declared by:</em></p>
+<ul>
+<li><a href="https://github.com/microvm-nix/microvm.nix/tree/main/nixos-modules/host/options.nix">microvm.nix/nixos-modules/host/options.nix</a></li>
+</ul>
+<h2 id="microvmvmsnameupdateflake"><a class="header" href="#microvmvmsnameupdateflake">microvm.vms.&lt;name&gt;.updateFlake</a></h2>
+<p>Source flakeref to store for later imperative update</p>
+<p><em>Type:</em>
+null or string</p>
+<p><em>Default:</em>
+<code>"git+file:///home/user/my-infra"</code></p>
+<p><em>Declared by:</em></p>
+<ul>
+<li><a href="https://github.com/microvm-nix/microvm.nix/tree/main/nixos-modules/host/options.nix">microvm.nix/nixos-modules/host/options.nix</a></li>
+</ul>
 
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
-                            <a rel="prev" href="intro.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                            <a rel="prev" href="host-systemd.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                                 <i class="fa fa-angle-left"></i>
                             </a>
 
-                            <a rel="next prefetch" href="options.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next prefetch" href="declarative.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <i class="fa fa-angle-right"></i>
                             </a>
 
@@ -230,11 +355,11 @@ augmented by importing this flake's <code>nixosModule.microvm</code>:</p>
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
-                    <a rel="prev" href="intro.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                    <a rel="prev" href="host-systemd.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                         <i class="fa fa-angle-left"></i>
                     </a>
 
-                    <a rel="next prefetch" href="options.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a rel="next prefetch" href="declarative.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <i class="fa fa-angle-right"></i>
                     </a>
             </nav>

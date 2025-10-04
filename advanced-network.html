@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Declaring MicroVMs - microvm.nix</title>
+        <title>Advanced network setup - microvm.nix</title>
 
 
         <!-- Custom HTML head -->
@@ -179,48 +179,106 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h1 id="declaring-nixos-microvms"><a class="header" href="#declaring-nixos-microvms">Declaring NixOS MicroVMs</a></h1>
-<p><img src="demo.gif" alt="Demo" /></p>
-<p>microvm.nix creates virtual machine disk images and runner script
-packages for the entries of the <code>nixosConfigurations</code> section of a
-<code>flake.nix</code> file.</p>
-<h2 id="the-microvm-module"><a class="header" href="#the-microvm-module">The <code>microvm</code> module</a></h2>
-<p>To add MicroVM functionality, a NixOS system configuration is
-augmented by importing this flake's <code>nixosModule.microvm</code>:</p>
-<pre><code class="language-nix"># Example flake.nix
-{
-  inputs.nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
-  inputs.microvm.url = "github:microvm-nix/microvm.nix";
-  inputs.microvm.inputs.nixpkgs.follows = "nixpkgs";
-
-  outputs = { self, nixpkgs, microvm }: {
-    # Example nixosConfigurations entry
-    nixosConfigurations.my-microvm = nixpkgs.lib.nixosSystem {
-      system = "x86_64-linux";
-      modules = [
-        # Include the microvm module
-        microvm.nixosModules.microvm
-        # Add more modules here
-        {
-          networking.hostName = "my-microvm";
-          microvm.hypervisor = "cloud-hypervisor";
-        }
-      ];
-    };
+                        <h1 id="advanced-network-setup"><a class="header" href="#advanced-network-setup">Advanced network setup</a></h1>
+<p>Renting a server in a datacenter usually gets you one IP address. You
+must not bridge your local VM traffic together with the physical
+Ethernet uplink port. Instead, setup a host-internal bridge for the
+Virtual Machines, and provide them with Internet through NAT just like
+your plastic ADSL router at home.</p>
+<h2 id="a-bridge-to-link-tap-interfaces"><a class="header" href="#a-bridge-to-link-tap-interfaces">A bridge to link TAP interfaces</a></h2>
+<p>Instead of placing MicroVMs directly on a LAN, one can also use a TAP
+interface to get a virtual Ethernet interface on the host. Although it
+is possible to <a href="./routed-network.html">assign individual IP
+configuration</a> to these individual interfaces,
+let us avoid the additional configuration effort and create a bridge
+instead:</p>
+<pre><code class="language-nix">systemd.network.netdevs."10-microvm".netdevConfig = {
+  Kind = "bridge";
+  Name = "microvm";
+};
+systemd.network.networks."10-microvm" = {
+  matchConfig.Name = "microvm";
+  networkConfig = {
+    DHCPServer = true;
+    IPv6SendRA = true;
   };
-}
+  addresses = [ {
+    addressConfig.Address = "10.0.0.1/24";
+  } {
+    addressConfig.Address = "fd12:3456:789a::1/64";
+  } ];
+  ipv6Prefixes = [ {
+    ipv6PrefixConfig.Prefix = "fd12:3456:789a::/64";
+  } ];
+};
+
+# Allow inbound traffic for the DHCP server
+networking.firewall.allowedUDPPorts = [ 67 ];
 </code></pre>
-<p>To get you started quickly, a Flake template is included. Run <code>nix flake init -t github:microvm-nix/microvm.nix</code> in a new project directory.</p>
+<p>This configuration will hand out IP addresses to clients on the
+bridge. In practise, better leave out the DHCP server and its state by
+opting for declarative, versioned configuration instead.</p>
+<p>Last, the TAP interfaces of MicroVMs shall be attached to this central
+bridge. Make sure your <code>matchConfig</code> matches just the interfaces you
+want!</p>
+<pre><code class="language-nix">systemd.network.networks."11-microvm" = {
+  matchConfig.Name = "vm-*";
+  # Attach to the bridge that was configured above
+  networkConfig.Bridge = "microvm";
+};
+</code></pre>
+<h2 id="provide-internet-access-with-nat"><a class="header" href="#provide-internet-access-with-nat">Provide Internet Access with NAT</a></h2>
+<p>IPv4 addresses are exhausted. It is a very common case that you get
+one public IPv4 address for your machine. The solution is to route
+your internal virtual machines with <em>Network Address Translation</em>.</p>
+<p>You might not get a dedicated /64 IPv6 prefix to route to your
+MicroVMs. NAT works for this address family, too!</p>
+<pre><code class="language-nix">networking.nat = {
+  enable = true;
+  # NAT66 exists and works. But if you have a proper subnet in
+  # 2000::/3 you should route that and remove this setting:
+  enableIPv6 = true;
+
+  # Change this to the interface with upstream Internet access
+  externalInterface = "eth0";
+  # The bridge where you want to provide Internet access
+  internalInterfaces = [ "microvm" ];
+};
+</code></pre>
+<p>Check out
+<a href="https://search.nixos.org/options?channel=unstable&amp;show=networking.nat.forwardPorts&amp;query=networking.nat.forwardPorts"><code>networking.nat.forwardPorts</code></a>
+to make your MicroVM's services available to networks outside your
+host!</p>
+<h2 id="port-forwarding"><a class="header" href="#port-forwarding">Port forwarding</a></h2>
+<p>Isolating your public Internet services is a great use-case for
+virtualization. But how does traffic get to you when your MicroVMs
+have private IP addresses behind NAT?</p>
+<p>NixOS has got you covered with the <code>networking.nat.forwardPorts</code>
+option! This example forwards TCP ports 80 (HTTP) and 443 (HTTPS) to
+other hosts:</p>
+<pre><code class="language-nix">networking.nat = {
+  enable = true;
+  forwardPorts = [ {
+    proto = "tcp";
+    sourcePort = 80;
+    destination = my-addresses.http-reverse-proxy.ip4;
+  } {
+    proto = "tcp";
+    sourcePort = 443;
+    destination = my-addresses.https-reverse-proxy.ip4;
+  } ];
+};
+</code></pre>
 
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
-                            <a rel="prev" href="intro.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                            <a rel="prev" href="simple-network.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                                 <i class="fa fa-angle-left"></i>
                             </a>
 
-                            <a rel="next prefetch" href="options.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next prefetch" href="routed-network.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <i class="fa fa-angle-right"></i>
                             </a>
 
@@ -230,11 +288,11 @@ augmented by importing this flake's <code>nixosModule.microvm</code>:</p>
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
-                    <a rel="prev" href="intro.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                    <a rel="prev" href="simple-network.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                         <i class="fa fa-angle-left"></i>
                     </a>
 
-                    <a rel="next prefetch" href="options.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a rel="next prefetch" href="routed-network.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <i class="fa fa-angle-right"></i>
                     </a>
             </nav>
