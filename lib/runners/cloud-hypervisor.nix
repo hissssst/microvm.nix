@@ -161,7 +161,7 @@ in {
     fi
   '' + lib.optionalString graphics.enable ''
     rm -f ${graphics.socket}
-    ${pkgs.crosvm}/bin/crosvm device gpu \
+    ${graphics.crosvmPackage}/bin/crosvm device gpu \
       --socket ${graphics.socket} \
       --wayland-sock $XDG_RUNTIME_DIR/$WAYLAND_DISPLAY \
       --params '${builtins.toJSON gpuParams}' \
