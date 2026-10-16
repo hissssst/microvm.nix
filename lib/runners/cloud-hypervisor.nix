@@ -188,13 +188,15 @@ in {
   '' + lib.optionalString graphics.enable ''
     rm -f ${graphics.socket}
     ${graphics.crosvmPackage}/bin/crosvm device gpu \
-      --socket ${graphics.socket} \
+      --socket-path ${graphics.socket} \
       --wayland-sock $XDG_RUNTIME_DIR/$WAYLAND_DISPLAY \
       --params '${builtins.toJSON gpuParams}' \
       &
     while ! [ -S ${graphics.socket} ]; do
       sleep .1
     done
+
+    echo CrosVM started
   '';
 
 
@@ -223,7 +225,7 @@ in {
       lib.optionals (vsockOpts != "") ["--vsock" vsockOpts]
       ++
       lib.optionals graphics.enable [
-        "--gpu" "socket=${graphics.socket}"
+        "--generic-vhost-user" "virtio_id=gpu,socket=${graphics.socket},queue_sizes=[16,256]"
       ]
       ++
       lib.optionals balloon [ "--balloon" balloonOps ]
