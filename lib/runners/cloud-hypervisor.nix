@@ -187,10 +187,12 @@ in {
     fi
   '' + lib.optionalString graphics.enable ''
     rm -f ${graphics.socket}
-    ${graphics.crosvmPackage}/bin/crosvm device gpu \
-      --socket-path ${graphics.socket} \
-      --wayland-sock $XDG_RUNTIME_DIR/$WAYLAND_DISPLAY \
-      --params '${builtins.toJSON gpuParams}' \
+    ${graphics.crosvmPackage}/bin/crosvm \
+      --log-level=${graphics.logLevel} \
+      device gpu \
+        --socket-path ${graphics.socket} \
+        --wayland-sock $XDG_RUNTIME_DIR/$WAYLAND_DISPLAY \
+        --params '${builtins.toJSON gpuParams}' \
       &
     while ! [ -S ${graphics.socket} ]; do
       sleep .1

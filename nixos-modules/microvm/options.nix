@@ -642,6 +642,14 @@ in
         '';
       };
 
+      logLevel = mkOption {
+        type = types.str;
+        default = "error";
+        description = ''
+          A log level for crosvm gpu command. Defaults to `"error"`.
+        '';
+      };
+
       crosvmPackage = mkOption {
         description = "crosvm package to use when running graphics (for cloud-hypervisor and crosvm)";
         default = pkgs.crosvm;
